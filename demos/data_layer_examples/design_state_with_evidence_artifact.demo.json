@@ -1,0 +1,135 @@
+{
+  "schema_version": "0.1.0",
+  "identity": {
+    "design_id": "CPP-DATA-LAYER-DEMO-001",
+    "run_id": "RUN-DATA-LAYER-001",
+    "revision": 0,
+    "tenant_id": "demo-tenant",
+    "thread_id": null
+  },
+  "execution": {
+    "status": "DRAFT_COMPLETE",
+    "current_node": "DATA_LAYER_DEMO",
+    "iteration": 1,
+    "versions": {
+      "workflow": "0.1.0",
+      "domain_core": "0.1.0",
+      "prompt_pack": "none",
+      "model": null,
+      "solver_bundle": "demo-calculator-0.1.0"
+    },
+    "started_at": "2026-09-03T06:00:00Z",
+    "updated_at": "2026-09-03T06:00:01Z"
+  },
+  "authorization": {
+    "actor_id": "demo-user",
+    "roles": ["learner"],
+    "allowed_effects": ["read", "compute"]
+  },
+  "raw_input": {
+    "text": "CPP-DATA-LAYER-DEMO-001 从负 6 度调到正 18 度需要多长时间？"
+  },
+  "normalized_input": {
+    "project_id": "CPP-DATA-LAYER-DEMO-001",
+    "start_pitch_deg": -6.0,
+    "target_pitch_deg": 18.0,
+    "pitch_speed_deg_per_second": 3.0
+  },
+  "requirements": [
+    {
+      "requirement_id": "REQ-PITCH-TIME-DEMO-001",
+      "statement": "计算指定起止桨距角之间的调距时间",
+      "status": "DRAFT"
+    }
+  ],
+  "knowledge_snapshot": {
+    "snapshot_id": null,
+    "authoritative_rules_available": false,
+    "approved": false,
+    "document_versions": [],
+    "rule_pack_version": null,
+    "catalog_version": null,
+    "created_at": null
+  },
+  "evidence": {
+    "EVD-CALC-PITCH-TIME-001": {
+      "evidence_id": "EVD-CALC-PITCH-TIME-001",
+      "kind": "calculation",
+      "source_id": "CALC-PITCH-TIME-001",
+      "revision": "0.1.0",
+      "section": null,
+      "page": null,
+      "locator": {
+        "artifact_id": "ART-CALC-PITCH-TIME-001",
+        "relative_path": "data_layer_examples/pitch_time_calculation.demo.json",
+        "tool_name": "calculate_pitch_change_time",
+        "tool_version": "0.1.0"
+      },
+      "content_hash": "sha256:b8c8a69bc78a77b17f8f73df99df0f040c4557b08cdd231ad3f967c229d6aad0",
+      "approval_status": "PENDING",
+      "acl_tags": ["demo", "training"]
+    }
+  },
+  "series_candidates": [],
+  "functional_breakdown": {},
+  "performance_allocations": [],
+  "module_instances": {},
+  "component_interfaces": {},
+  "calculations": {
+    "CALC-PITCH-TIME-001": {
+      "calculation_id": "CALC-PITCH-TIME-001",
+      "producer": "calculate_pitch_change_time@0.1.0",
+      "inputs": {
+        "start_pitch_deg": -6.0,
+        "target_pitch_deg": 18.0,
+        "pitch_speed_deg_per_second": 3.0
+      },
+      "outputs": {
+        "pitch_change_deg": 24.0,
+        "change_time_seconds": 8.0
+      },
+      "evidence_ids": ["EVD-CALC-PITCH-TIME-001"],
+      "status": "CALCULATED"
+    }
+  },
+  "compatibility": {},
+  "verification": {
+    "engineering_release_allowed": false,
+    "reason": "仅有教学计算，没有权威规则、工程验证和人工批准"
+  },
+  "decisions": [],
+  "open_issues": [
+    {
+      "issue_id": "ISS-DEMO-NOT-AUTHORITATIVE",
+      "code": "AUTHORITATIVE_BASIS_MISSING",
+      "severity": "ERROR",
+      "message": "当前数据仅用于演示 Schema、Evidence 和 Artifact，不可用于工程放行。",
+      "status": "OPEN",
+      "blocking": true,
+      "owner_role": "chief_designer",
+      "evidence_ids": ["EVD-CALC-PITCH-TIME-001"]
+    }
+  ],
+  "approvals": [],
+  "artifacts": [
+    {
+      "artifact_id": "ART-CALC-PITCH-TIME-001",
+      "artifact_type": "calculation_report",
+      "name": "调距时间教学计算报告",
+      "uri": "data_layer_examples/pitch_time_calculation.demo.json",
+      "mime_type": "application/json",
+      "revision": "0.1.0",
+      "content_hash": "sha256:b8c8a69bc78a77b17f8f73df99df0f040c4557b08cdd231ad3f967c229d6aad0",
+      "maturity": "DRAFT",
+      "produced_by": "calculate_pitch_change_time@0.1.0",
+      "evidence_ids": ["EVD-CALC-PITCH-TIME-001"],
+      "approval_ids": [],
+      "created_at": "2026-09-03T06:00:01Z"
+    }
+  ],
+  "release": {
+    "allowed": false,
+    "status": "NOT_RELEASED"
+  },
+  "audit_refs": []
+}

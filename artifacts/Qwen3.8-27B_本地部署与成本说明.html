@@ -1,0 +1,881 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Qwen3.8-27B 本地部署：模型规模术语、显存估算、算力方案、成本区间与保密单位部署建议。" />
+  <title>Qwen3.8-27B｜本地部署与成本说明</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #eef3f8;
+      --paper: #ffffff;
+      --ink: #142033;
+      --muted: #5b687a;
+      --line: #d8e1eb;
+      --navy: #102b4e;
+      --blue: #1467a8;
+      --cyan: #0d8a9b;
+      --gold: #bc7a13;
+      --green: #247a58;
+      --red: #a53d43;
+      --soft-blue: #e9f4ff;
+      --soft-cyan: #e9f8fa;
+      --soft-gold: #fff6e7;
+      --soft-green: #eaf7f1;
+      --shadow: 0 18px 46px rgba(16, 43, 78, 0.10);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 92% 2%, rgba(13, 138, 155, .12), transparent 29rem),
+        linear-gradient(180deg, #f7faff 0, var(--bg) 42rem);
+      color: var(--ink);
+      font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.72;
+    }
+
+    a { color: var(--blue); text-underline-offset: 3px; }
+    a:hover { color: var(--cyan); }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid rgba(216, 225, 235, .9);
+      background: rgba(255, 255, 255, .88);
+      backdrop-filter: blur(14px);
+    }
+
+    .topbar-inner {
+      width: min(1180px, calc(100% - 36px));
+      min-height: 64px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      font-weight: 760;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    .brand-mark {
+      width: 31px;
+      height: 31px;
+      display: grid;
+      place-items: center;
+      border-radius: 9px;
+      color: #fff;
+      background: linear-gradient(145deg, var(--blue), var(--cyan));
+      box-shadow: 0 7px 18px rgba(20, 103, 168, .22);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    nav {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    nav::-webkit-scrollbar { display: none; }
+    nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    nav a:hover { color: var(--blue); }
+
+    .print-button {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 7px 12px;
+      color: var(--navy);
+      background: #fff;
+      white-space: nowrap;
+    }
+
+    main {
+      width: min(1180px, calc(100% - 36px));
+      margin: 0 auto;
+      padding: 46px 0 72px;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 46px;
+      border-radius: 26px;
+      color: #fff;
+      background:
+        linear-gradient(115deg, rgba(255,255,255,.08) 0 1px, transparent 1px 42px),
+        linear-gradient(145deg, #0d2746 0%, #154e76 60%, #0b7e8d 115%);
+      box-shadow: var(--shadow);
+    }
+
+    .hero::after {
+      content: "27B";
+      position: absolute;
+      right: 30px;
+      bottom: -44px;
+      color: rgba(255,255,255,.07);
+      font-size: clamp(120px, 20vw, 240px);
+      font-weight: 900;
+      line-height: 1;
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      padding: 5px 10px;
+      border: 1px solid rgba(255,255,255,.25);
+      border-radius: 999px;
+      color: #d8f6fa;
+      background: rgba(255,255,255,.07);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .08em;
+    }
+
+    h1, h2, h3 { line-height: 1.25; }
+    h1 {
+      max-width: 770px;
+      margin: 0;
+      font-size: clamp(34px, 5vw, 64px);
+      letter-spacing: -.035em;
+    }
+
+    .hero-lead {
+      max-width: 760px;
+      margin: 18px 0 28px;
+      color: rgba(255,255,255,.82);
+      font-size: 18px;
+    }
+
+    .hero-stats {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .hero-stat {
+      min-height: 92px;
+      padding: 15px 17px;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 15px;
+      background: rgba(255,255,255,.08);
+    }
+    .hero-stat strong { display: block; font-size: 23px; }
+    .hero-stat span { color: rgba(255,255,255,.68); font-size: 13px; }
+
+    section { scroll-margin-top: 88px; margin-top: 58px; }
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 24px;
+      margin-bottom: 20px;
+    }
+    .section-head h2 { margin: 0; color: var(--navy); font-size: 29px; }
+    .section-head p { max-width: 660px; margin: 0; color: var(--muted); }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--paper);
+      box-shadow: 0 7px 24px rgba(16, 43, 78, .055);
+    }
+
+    .callout {
+      display: grid;
+      grid-template-columns: 58px 1fr;
+      gap: 18px;
+      align-items: start;
+      padding: 22px;
+      border-left: 5px solid var(--gold);
+      background: var(--soft-gold);
+    }
+    .callout-icon {
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      color: var(--gold);
+      background: #fff;
+      font-weight: 900;
+      font-size: 21px;
+    }
+    .callout h3 { margin: 0 0 4px; font-size: 18px; }
+    .callout p { margin: 0; color: #6f541f; }
+
+    .term-tools {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .term-search {
+      width: min(320px, 100%);
+      padding: 10px 14px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      color: var(--ink);
+      background: #fff;
+      outline: none;
+    }
+    .term-search:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(20, 103, 168, .12);
+    }
+
+    .term-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .term-card { padding: 21px; }
+    .term-card .code {
+      display: inline-block;
+      margin-bottom: 9px;
+      padding: 3px 8px;
+      border-radius: 7px;
+      color: var(--blue);
+      background: var(--soft-blue);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .term-card h3 { margin: 0 0 7px; font-size: 18px; }
+    .term-card p { margin: 0; color: var(--muted); font-size: 15px; }
+    .term-card[hidden] { display: none; }
+
+    .decode {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      overflow: hidden;
+    }
+    .decode-main { padding: 28px; }
+    .decode-main h3 { margin: 0 0 16px; font-size: 21px; }
+    .formula-line {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .formula-line:last-child { border-bottom: 0; }
+    .formula-line span { color: var(--muted); }
+    .decode-side {
+      padding: 28px;
+      color: #fff;
+      background: var(--navy);
+    }
+    .decode-side strong { display: block; margin-bottom: 9px; font-size: 22px; }
+    .decode-side p { margin: 0; color: rgba(255,255,255,.74); }
+
+    .memory-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .memory-card { padding: 24px; }
+    .memory-card.recommended { border: 2px solid var(--cyan); transform: translateY(-4px); }
+    .memory-label { color: var(--muted); font-size: 14px; font-weight: 700; }
+    .memory-number { margin: 2px 0 14px; color: var(--navy); font-size: 36px; font-weight: 850; }
+    .memory-number small { font-size: 15px; color: var(--muted); }
+    .meter {
+      height: 8px;
+      margin: 14px 0 16px;
+      overflow: hidden;
+      border-radius: 99px;
+      background: #e7edf4;
+    }
+    .meter span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--blue), var(--cyan)); }
+    .memory-card ul { margin: 0; padding-left: 19px; color: var(--muted); font-size: 14px; }
+    .memory-card li + li { margin-top: 4px; }
+    .badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 99px;
+      color: var(--green);
+      background: var(--soft-green);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .cost-workbench { padding: 25px; }
+    .scenario-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-bottom: 22px;
+    }
+    .scenario-tab {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px 13px;
+      color: var(--muted);
+      background: #fff;
+    }
+    .scenario-tab.active {
+      border-color: var(--navy);
+      color: #fff;
+      background: var(--navy);
+    }
+    .scenario-display {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+    }
+    .scenario-copy {
+      padding: 25px;
+      border-radius: 15px;
+      background: var(--soft-blue);
+    }
+    .scenario-copy .kicker { color: var(--blue); font-size: 13px; font-weight: 800; letter-spacing: .08em; }
+    .scenario-copy h3 { margin: 4px 0 8px; color: var(--navy); font-size: 25px; }
+    .scenario-copy p { margin: 0; color: var(--muted); }
+    .scenario-specs { display: grid; gap: 10px; }
+    .spec-row {
+      display: grid;
+      grid-template-columns: 132px 1fr;
+      gap: 12px;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .spec-row:last-child { border-bottom: 0; }
+    .spec-row span { color: var(--muted); }
+    .spec-row strong { color: var(--navy); }
+
+    .tier-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+    .tier-card { position: relative; padding: 22px; overflow: hidden; }
+    .tier-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 5px;
+      background: var(--accent, var(--blue));
+    }
+    .tier-card h3 { margin: 0 0 3px; font-size: 18px; }
+    .tier-price { margin: 11px 0; color: var(--navy); font-size: 25px; font-weight: 850; }
+    .tier-card p { margin: 0; color: var(--muted); font-size: 14px; }
+
+    .bom-table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 14px 16px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--navy); background: #f3f7fb; font-size: 14px; }
+    td { color: var(--muted); }
+    td strong { color: var(--ink); }
+    tr:last-child td { border-bottom: 0; }
+
+    .architecture {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 28px;
+      padding: 28px;
+      align-items: stretch;
+    }
+    .arch-node {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-height: 118px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      text-align: center;
+      background: #fff;
+    }
+    .arch-node:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      right: -23px;
+      top: 50%;
+      color: var(--cyan);
+      font-size: 25px;
+      transform: translateY(-50%);
+    }
+    .arch-node strong { display: block; color: var(--navy); font-size: 17px; }
+    .arch-node span { display: block; color: var(--muted); font-size: 13px; }
+
+    .notes-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .note { padding: 22px; }
+    .note h3 { margin: 0 0 8px; font-size: 18px; }
+    .note ul { margin: 0; padding-left: 20px; color: var(--muted); }
+    .note li + li { margin-top: 5px; }
+
+    .recommendation {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 28px;
+      align-items: center;
+      padding: 30px;
+      border: 0;
+      color: #fff;
+      background: linear-gradient(135deg, var(--navy), #164e71);
+    }
+    .recommendation h2 { margin: 0 0 8px; font-size: 27px; }
+    .recommendation p { margin: 0; color: rgba(255,255,255,.75); }
+    .recommendation-price { text-align: right; white-space: nowrap; }
+    .recommendation-price strong { display: block; font-size: 31px; }
+    .recommendation-price span { color: rgba(255,255,255,.65); font-size: 13px; }
+
+    .source-list { margin: 0; padding-left: 22px; color: var(--muted); }
+    .source-list li + li { margin-top: 7px; }
+    .fine-print {
+      margin-top: 20px;
+      padding: 16px 18px;
+      border-radius: 12px;
+      color: var(--muted);
+      background: #f4f7fa;
+      font-size: 13px;
+    }
+
+    footer {
+      padding: 28px 18px 40px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 13px;
+    }
+
+    @media (max-width: 900px) {
+      .hero { padding: 34px 28px; }
+      .hero-stats, .tier-grid { grid-template-columns: repeat(2, 1fr); }
+      .term-grid { grid-template-columns: repeat(2, 1fr); }
+      .decode, .scenario-display { grid-template-columns: 1fr; }
+      .architecture { grid-template-columns: repeat(2, 1fr); }
+      .arch-node:nth-child(2)::after { display: none; }
+      nav { display: none; }
+    }
+
+    @media (max-width: 620px) {
+      main { width: min(100% - 24px, 1180px); padding-top: 20px; }
+      .topbar-inner { width: min(100% - 24px, 1180px); }
+      .hero { padding: 27px 21px; border-radius: 20px; }
+      .hero-stats, .term-grid, .memory-grid, .tier-grid, .notes-grid, .architecture { grid-template-columns: 1fr; }
+      .section-head { display: block; }
+      .section-head p { margin-top: 7px; }
+      .term-tools { margin-top: 12px; }
+      .term-search { width: 100%; }
+      .memory-card.recommended { transform: none; }
+      .arch-node::after { display: none; }
+      .recommendation { grid-template-columns: 1fr; }
+      .recommendation-price { text-align: left; }
+      .spec-row { grid-template-columns: 105px 1fr; }
+      .callout { grid-template-columns: 1fr; }
+    }
+
+    @media print {
+      :root { --bg: #fff; --shadow: none; }
+      body { background: #fff; font-size: 11pt; }
+      .topbar, .scenario-tabs, .term-tools { display: none !important; }
+      main { width: 100%; padding: 0; }
+      section { margin-top: 26px; break-inside: avoid; }
+      .hero { border-radius: 0; box-shadow: none; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .card { box-shadow: none; break-inside: avoid; }
+      a { color: inherit; text-decoration: none; }
+      .term-grid, .memory-grid, .tier-grid { gap: 8px; }
+      footer { padding-bottom: 0; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand"><span class="brand-mark">Q3.8</span>本地部署说明</div>
+      <nav aria-label="页面导航">
+        <a href="#terms">名词解释</a>
+        <a href="#memory">显存估算</a>
+        <a href="#cost">硬件与成本</a>
+        <a href="#architecture">部署结构</a>
+        <a href="#sources">依据与边界</a>
+      </nav>
+      <button class="print-button" type="button" onclick="window.print()">打印 / 导出PDF</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="page-title">
+      <div class="eyebrow">更新日期 · 2026-09-03</div>
+      <h1 id="page-title">Qwen3.8-27B<br />本地部署与成本说明</h1>
+      <p class="hero-lead">面向个人编码测试、内网试点和保密单位小规模生产。统一解释模型规模、显存、精度、上下文、并发与预算之间的关系。</p>
+      <div class="hero-stats">
+        <div class="hero-stat"><strong>27B Dense</strong><span>约270亿参数，稠密模型</span></div>
+        <div class="hero-stat"><strong>256K</strong><span>官方最大上下文能力</span></div>
+        <div class="hero-stat"><strong>32–96GB</strong><span>从个人量化到生产显存</span></div>
+        <div class="hero-stat"><strong>¥5.5–25万</strong><span>开发机至小型生产整机</span></div>
+      </div>
+    </section>
+
+    <section aria-label="结论摘要">
+      <div class="callout card">
+        <div class="callout-icon">!</div>
+        <div>
+          <h3>先看结论</h3>
+          <p>个人编码测试可从单张 RTX 5090 32GB + NVFP4/INT4 开始；客户试点建议单张48GB专业卡；小规模生产建议2×48GB或1×96GB。完整256K上下文与多并发不能只按权重大小估算，必须给KV Cache和运行时留出显存。</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="terms">
+      <div class="section-head">
+        <div>
+          <h2>模型规模与性能名词</h2>
+          <p>理解这些术语后，才能正确阅读“27B”“35B-A3B”“FP8”和“256K”等规格。</p>
+        </div>
+        <div class="term-tools">
+          <label for="term-search" style="position:absolute;left:-9999px">搜索术语</label>
+          <input id="term-search" class="term-search" type="search" placeholder="搜索：MoE、KV Cache、TPS…" />
+        </div>
+      </div>
+
+      <div class="term-grid" id="term-grid">
+        <article class="term-card card" data-term="b billion t trillion 参数 规模">
+          <span class="code">B / T</span><h3>参数数量单位</h3>
+          <p>1B等于10亿参数；1T等于1万亿参数。27B即约270亿参数。参数多通常意味着更高容量，但不等于必然更聪明。</p>
+        </article>
+        <article class="term-card card" data-term="dense 稠密 参数 计算">
+          <span class="code">Dense</span><h3>稠密模型</h3>
+          <p>生成每个token时，绝大多数语言模型参数都会参与计算。Qwen3.8-27B属于这一类，存储规模和每token计算规模都接近27B。</p>
+        </article>
+        <article class="term-card card" data-term="moe mixture experts 混合专家 稀疏">
+          <span class="code">MoE</span><h3>混合专家模型</h3>
+          <p>模型拥有多个专家模块，每个token只激活其中一部分。可降低计算量，但部署时通常仍需容纳全部专家权重。</p>
+        </article>
+        <article class="term-card card" data-term="a3b active activated 激活参数">
+          <span class="code">A3B</span><h3>激活参数</h3>
+          <p>表示每个token约激活30亿参数。35B-A3B仍需保存35B总权重，A3B主要影响计算量和生成速度。</p>
+        </article>
+        <article class="term-card card" data-term="bf16 fp16 fp8 int8 int4 nvfp4 精度 位宽">
+          <span class="code">BF16 / FP8 / INT4</span><h3>权重精度</h3>
+          <p>表示保存每个参数所使用的位数。位数越低，显存占用越小；但过度量化可能降低代码、推理和工具调用可靠性。</p>
+        </article>
+        <article class="term-card card" data-term="quantization 量化 压缩">
+          <span class="code">Quantization</span><h3>量化</h3>
+          <p>把BF16权重转换成FP8、INT8或INT4等更小格式。它能降低显存和带宽压力，但必须用业务测试集评估质量损失。</p>
+        </article>
+        <article class="term-card card" data-term="context window 上下文 32k 128k 256k">
+          <span class="code">Context Window</span><h3>上下文窗口</h3>
+          <p>一次请求可容纳的系统提示词、对话、代码、文档、工具定义、工具结果与输出总量。标称256K不代表生产应默认开满。</p>
+        </article>
+        <article class="term-card card" data-term="kv cache 缓存 显存 上下文 并发">
+          <span class="code">KV Cache</span><h3>注意力缓存</h3>
+          <p>保存历史token的注意力中间结果。它随上下文、并发和缓存精度增长，是“权重装得下但服务仍爆显存”的常见原因。</p>
+        </article>
+        <article class="term-card card" data-term="token 字符 词元 输入 输出">
+          <span class="code">Token</span><h3>模型处理单位</h3>
+          <p>token不完全等于汉字或单词。代码、标点、数字和缩进都会占用token，编码Agent的工具日志尤其容易快速消耗上下文。</p>
+        </article>
+        <article class="term-card card" data-term="ttft time first token 首字 延迟">
+          <span class="code">TTFT</span><h3>首Token延迟</h3>
+          <p>从发出请求到看到第一个token所需时间。长提示词、长代码库和拥塞会显著增加TTFT。</p>
+        </article>
+        <article class="term-card card" data-term="tps tokens per second 吞吐 速度">
+          <span class="code">TPS</span><h3>生成速度</h3>
+          <p>每秒生成多少token。Agent实际体验还取决于工具调用次数、上下文预填充、编译和测试耗时。</p>
+        </article>
+        <article class="term-card card" data-term="concurrency 并发 用户 agent 工具">
+          <span class="code">Concurrency</span><h3>并发</h3>
+          <p>同时执行的模型请求数量。一个主Agent派出多个子Agent会放大模型并发、KV Cache和工具资源占用。</p>
+        </article>
+      </div>
+    </section>
+
+    <section aria-labelledby="decode-title">
+      <div class="section-head">
+        <div><h2 id="decode-title">如何读懂型号</h2></div>
+      </div>
+      <div class="decode card">
+        <div class="decode-main">
+          <h3>Qwen3.8-27B = 27B稠密模型</h3>
+          <div class="formula-line"><span>总参数</span><strong>约270亿</strong></div>
+          <div class="formula-line"><span>每token主要计算规模</span><strong>接近27B</strong></div>
+          <div class="formula-line"><span>BF16理论权重</span><strong>27B × 2字节 ≈ 54GB</strong></div>
+          <div class="formula-line"><span>FP8理论权重</span><strong>27B × 1字节 ≈ 27GB</strong></div>
+          <div class="formula-line"><span>INT4理论权重</span><strong>27B × 0.5字节 ≈ 13.5GB</strong></div>
+        </div>
+        <aside class="decode-side">
+          <strong>与35B-A3B的区别</strong>
+          <p>35B-A3B是MoE：按35B估算权重存储，按约3B激活规模理解主要计算量。Qwen3.8-27B是Dense：按27B同时理解存储和主要计算量。因此它通常更稳定，但单token计算不如小激活MoE轻。</p>
+        </aside>
+      </div>
+    </section>
+
+    <section id="memory">
+      <div class="section-head">
+        <div>
+          <h2>显存与精度估算</h2>
+          <p>理论权重只是下限；“实际建议显存”已经为运行时和有限KV Cache预留空间，但仍需按上下文与并发实测。</p>
+        </div>
+      </div>
+      <div class="memory-grid">
+        <article class="memory-card card">
+          <div class="memory-label">BF16 · 质量优先</div>
+          <div class="memory-number">54GB <small>理论权重</small></div>
+          <div class="meter"><span style="width:84%"></span></div>
+          <ul><li>实际建议80GB以上</li><li>长上下文建议96GB以上</li><li>适合高质量验证或生产</li></ul>
+        </article>
+        <article class="memory-card card recommended">
+          <span class="badge">推荐生产起点</span>
+          <div class="memory-label" style="margin-top:9px">FP8 / INT8 · 综合平衡</div>
+          <div class="memory-number">27GB <small>理论权重</small></div>
+          <div class="meter"><span style="width:52%"></span></div>
+          <ul><li>实际建议48GB以上</li><li>小规模生产建议96GB总显存</li><li>兼顾质量、速度和并发</li></ul>
+        </article>
+        <article class="memory-card card">
+          <div class="memory-label">INT4 / NVFP4 · 成本优先</div>
+          <div class="memory-number">13.5GB <small>理论权重</small></div>
+          <div class="meter"><span style="width:31%"></span></div>
+          <ul><li>实际建议24～32GB以上</li><li>适合个人编码和试验</li><li>需重点评测工具调用可靠性</li></ul>
+        </article>
+      </div>
+    </section>
+
+    <section id="cost">
+      <div class="section-head">
+        <div>
+          <h2>按使用场景选择硬件</h2>
+          <p>选择场景查看建议。价格为2026年9月中国市场的预算口径，不是供应商正式报价。</p>
+        </div>
+      </div>
+      <div class="cost-workbench card">
+        <div class="scenario-tabs" role="tablist" aria-label="部署场景">
+          <button class="scenario-tab active" type="button" role="tab" aria-selected="true" data-scenario="dev">个人编码测试</button>
+          <button class="scenario-tab" type="button" role="tab" aria-selected="false" data-scenario="pilot">客户试点</button>
+          <button class="scenario-tab" type="button" role="tab" aria-selected="false" data-scenario="prod">小规模生产</button>
+          <button class="scenario-tab" type="button" role="tab" aria-selected="false" data-scenario="long">长上下文 / 多并发</button>
+        </div>
+        <div class="scenario-display" aria-live="polite">
+          <div class="scenario-copy">
+            <div class="kicker" id="scenario-kicker">个人开发</div>
+            <h3 id="scenario-title">单张RTX 5090 32GB</h3>
+            <p id="scenario-desc">使用NVFP4/INT4，先从32K上下文和单用户开始，适合Qwen Code、OpenCode或DeepSeek Harness进行编码、测试和Agent原型开发。</p>
+          </div>
+          <div class="scenario-specs">
+            <div class="spec-row"><span>整机预算</span><strong id="scenario-price">5.5万～7万元</strong></div>
+            <div class="spec-row"><span>内存 / 存储</span><strong id="scenario-host">128GB / 2～4TB NVMe</strong></div>
+            <div class="spec-row"><span>建议精度</span><strong id="scenario-precision">NVFP4或高质量INT4</strong></div>
+            <div class="spec-row"><span>上下文</span><strong id="scenario-context">32K起，验证后尝试64K</strong></div>
+            <div class="spec-row"><span>并发</span><strong id="scenario-concurrency">模型1～2，Agent最多2</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tier-grid" aria-label="预算档位总览">
+        <article class="tier-card card" style="--accent:#247a58">
+          <h3>个人开发机</h3><div class="tier-price">¥5.5–7万</div>
+          <p>1×RTX 5090 32GB；量化模型；单用户编码测试。</p>
+        </article>
+        <article class="tier-card card" style="--accent:#1467a8">
+          <h3>客户试点机</h3><div class="tier-price">¥10–15万</div>
+          <p>1×48GB专业卡；FP8；低并发RAG与专业Agent。</p>
+        </article>
+        <article class="tier-card card" style="--accent:#0d8a9b">
+          <h3>小规模生产</h3><div class="tier-price">¥18–25万</div>
+          <p>2×48GB或1×96GB；FP8；业务与开发资源隔离。</p>
+        </article>
+        <article class="tier-card card" style="--accent:#bc7a13">
+          <h3>长上下文节点</h3><div class="tier-price">¥30–60万</div>
+          <p>2×96GB或4×48GB；高可用部署需要两套节点。</p>
+        </article>
+      </div>
+    </section>
+
+    <section aria-labelledby="bom-title">
+      <div class="section-head">
+        <div>
+          <h2 id="bom-title">参考采购清单</h2>
+          <p>以下是整机预算口径。机架服务器、冗余电源、企业级硬盘、原厂维保和安全集成会增加成本。</p>
+        </div>
+      </div>
+      <div class="bom-table-wrap card">
+        <table>
+          <thead><tr><th>方案</th><th>GPU</th><th>主机资源</th><th>目标工作负载</th><th>预算</th></tr></thead>
+          <tbody>
+            <tr><td><strong>个人开发</strong></td><td>RTX 5090 32GB ×1</td><td>16核CPU、128GB内存、2～4TB NVMe</td><td>单用户编码、测试、Harness原型</td><td><strong>5.5万～7万元</strong></td></tr>
+            <tr><td><strong>客户试点</strong></td><td>L20 / RTX 6000 Ada 48GB ×1</td><td>24核CPU、256GB内存、4TB NVMe</td><td>RAG、通用Agent、2～4推理并发</td><td><strong>10万～15万元</strong></td></tr>
+            <tr><td><strong>小规模生产</strong></td><td>48GB ×2 或96GB ×1</td><td>32核CPU、512GB内存、8TB企业NVMe</td><td>业务Agent和编码Agent隔离、4～8推理并发</td><td><strong>18万～25万元</strong></td></tr>
+            <tr><td><strong>长上下文生产</strong></td><td>96GB ×2 或48GB ×4</td><td>512GB～1TB内存、8TB以上NVMe</td><td>长代码库、长文档、更多KV Cache</td><td><strong>30万～60万元/节点</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="architecture">
+      <div class="section-head">
+        <div>
+          <h2>推荐本地化结构</h2>
+          <p>推理服务和Agent Harness分开部署，便于更换模型、限制权限并分别扩容。</p>
+        </div>
+      </div>
+      <div class="architecture card">
+        <div class="arch-node"><div><strong>用户与业务系统</strong><span>内网门户、IDE、CLI</span></div></div>
+        <div class="arch-node"><div><strong>Agent层</strong><span>LangGraph / Qwen Code / DeepSeek Harness</span></div></div>
+        <div class="arch-node"><div><strong>模型服务层</strong><span>vLLM或SGLang，OpenAI兼容API</span></div></div>
+        <div class="arch-node"><div><strong>Qwen3.8-27B</strong><span>FP8生产 / NVFP4开发</span></div></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="boundaries-title">
+      <div class="section-head"><div><h2 id="boundaries-title">估算边界与风险</h2></div></div>
+      <div class="notes-grid">
+        <article class="note card">
+          <h3>为什么价格不能只看显卡</h3>
+          <ul>
+            <li>保密单位通常需要ECC、冗余电源、企业级SSD和原厂维保。</li>
+            <li>服务器机箱、散热和供电要求高于个人工作站。</li>
+            <li>高可用至少需要两套节点，硬件预算接近翻倍。</li>
+            <li>软件开源不等于集成、安全测评和运维服务免费。</li>
+          </ul>
+        </article>
+        <article class="note card">
+          <h3>为什么显存不能只看模型权重</h3>
+          <ul>
+            <li>KV Cache会随上下文和并发增加。</li>
+            <li>工具调用历史、RAG文档和代码日志都占用上下文。</li>
+            <li>推理框架还需要CUDA工作区和运行缓冲区。</li>
+            <li>256K是能力上限，不是推荐默认运行参数。</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section aria-label="最终建议">
+      <div class="recommendation card">
+        <div>
+          <h2>建议采购基线：2×48GB</h2>
+          <p>Qwen3.8-27B FP8 + vLLM。业务Agent与个人编码Harness可分卡或分实例运行；默认32K上下文，模型并发4～8，单任务子Agent并发不超过2～4。</p>
+        </div>
+        <div class="recommendation-price"><strong>¥18–25万</strong><span>单台小规模生产服务器估算</span></div>
+      </div>
+    </section>
+
+    <section id="sources">
+      <div class="section-head">
+        <div>
+          <h2>公开依据与价格口径</h2>
+          <p>页面可完全离线阅读；下列链接仅用于联网时核验原始资料。</p>
+        </div>
+      </div>
+      <div class="card" style="padding:24px 27px">
+        <ol class="source-list">
+          <li><a href="https://github.com/QwenLM/Qwen3.8/blob/main/README.md" target="_blank" rel="noreferrer">Qwen3.8官方仓库</a>：27B模型、256K上下文、vLLM/SGLang部署及工具调用参数。</li>
+          <li><a href="https://huggingface.co/Qwen/Qwen3.8-27B" target="_blank" rel="noreferrer">Qwen3.8-27B官方模型卡</a>：Apache 2.0许可与模型文件。</li>
+          <li><a href="https://recipes.vllm.ai/Qwen/Qwen3.8-27B" target="_blank" rel="noreferrer">vLLM官方配方</a>：FP8/NVFP4推理支持。</li>
+          <li><a href="https://docs.vllm.ai/projects/ascend/zh-cn/latest/tutorials/models/Qwen3.8-27B.html" target="_blank" rel="noreferrer">vLLM-Ascend文档</a>：昇腾环境下的Qwen3.8-27B验证路径。</li>
+          <li><a href="https://detail.zol.com.cn/vga/index1504769.shtml" target="_blank" rel="noreferrer">RTX 6000 Ada国内参考报价</a>：48GB专业卡价格与规格参考。</li>
+          <li><a href="https://item.jd.com/product/4LnVX34ByikI-KaYbsQWBg.html" target="_blank" rel="noreferrer">RTX 5090国内零售参考</a>：32GB消费卡价格参考。</li>
+        </ol>
+        <div class="fine-print">免责声明：显存数字为容量规划估算，不代表任意驱动、量化文件和推理框架组合都能达到相同性能。价格按2026-09-03可见市场信息和常见整机配套估算，不含机房改造、等保/保密测评、定制开发、驻场运维、税率差异及特殊采购溢价。正式采购前应使用目标硬件、固定模型版本和真实脱敏测试集完成POC。</div>
+      </div>
+    </section>
+  </main>
+
+  <footer>Qwen3.8-27B 本地部署与成本说明 · 单文件离线版 · 2026-09-03</footer>
+
+  <script>
+    const scenarios = {
+      dev: {
+        kicker: "个人开发",
+        title: "单张RTX 5090 32GB",
+        desc: "使用NVFP4/INT4，先从32K上下文和单用户开始，适合Qwen Code、OpenCode或DeepSeek Harness进行编码、测试和Agent原型开发。",
+        price: "5.5万～7万元",
+        host: "128GB / 2～4TB NVMe",
+        precision: "NVFP4或高质量INT4",
+        context: "32K起，验证后尝试64K",
+        concurrency: "模型1～2，Agent最多2"
+      },
+      pilot: {
+        kicker: "客户试点",
+        title: "单张48GB专业卡",
+        desc: "采用L20或RTX 6000 Ada等级显卡运行FP8，适合低并发RAG、通用Agent和一到两个专业Agent。专业卡的ECC和企业支持更适合客户环境。",
+        price: "10万～15万元",
+        host: "256GB / 4TB NVMe",
+        precision: "FP8，必要时INT4",
+        context: "16K～32K",
+        concurrency: "模型2～4，Agent最多2"
+      },
+      prod: {
+        kicker: "小规模生产",
+        title: "2×48GB或1×96GB",
+        desc: "这是推荐的客户生产基线。可给FP8、KV Cache和工具历史保留余量，也可把业务Agent与个人编码Agent拆分到不同实例。",
+        price: "18万～25万元",
+        host: "512GB / 8TB企业NVMe",
+        precision: "FP8",
+        context: "32K～128K，按负载调优",
+        concurrency: "模型4～8，Agent最多2～4"
+      },
+      long: {
+        kicker: "长上下文与多并发",
+        title: "2×96GB或4×48GB",
+        desc: "适合长代码库、长制度文档和更多KV Cache。若要求高可用，需要第二套节点，并对模型、网关、知识库和Agent状态分别设计容灾。",
+        price: "30万～60万元/节点",
+        host: "512GB～1TB / 8TB以上NVMe",
+        precision: "FP8或BF16",
+        context: "128K～256K，必须实测",
+        concurrency: "按压测结果设定，不建议盲目开大"
+      }
+    };
+
+    document.querySelectorAll(".scenario-tab").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll(".scenario-tab").forEach((item) => {
+          item.classList.remove("active");
+          item.setAttribute("aria-selected", "false");
+        });
+        button.classList.add("active");
+        button.setAttribute("aria-selected", "true");
+        const value = scenarios[button.dataset.scenario];
+        document.getElementById("scenario-kicker").textContent = value.kicker;
+        document.getElementById("scenario-title").textContent = value.title;
+        document.getElementById("scenario-desc").textContent = value.desc;
+        document.getElementById("scenario-price").textContent = value.price;
+        document.getElementById("scenario-host").textContent = value.host;
+        document.getElementById("scenario-precision").textContent = value.precision;
+        document.getElementById("scenario-context").textContent = value.context;
+        document.getElementById("scenario-concurrency").textContent = value.concurrency;
+      });
+    });
+
+    const search = document.getElementById("term-search");
+    const termCards = [...document.querySelectorAll(".term-card")];
+    search.addEventListener("input", () => {
+      const query = search.value.trim().toLowerCase();
+      termCards.forEach((card) => {
+        const haystack = `${card.dataset.term} ${card.textContent}`.toLowerCase();
+        card.hidden = query.length > 0 && !haystack.includes(query);
+      });
+    });
+  </script>
+</body>
+</html>

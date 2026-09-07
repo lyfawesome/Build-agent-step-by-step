@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.internal/schemas/cpp/design-state/0.1.0",
+  "title": "Controllable Pitch Propeller Design State",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "identity",
+    "execution",
+    "raw_input",
+    "normalized_input",
+    "knowledge_snapshot",
+    "evidence",
+    "decisions",
+    "open_issues",
+    "component_interfaces",
+    "approvals",
+    "artifacts"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1.0"},
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["design_id", "run_id", "revision", "tenant_id"],
+      "properties": {
+        "design_id": {"type": "string", "minLength": 1},
+        "run_id": {"type": "string", "minLength": 1},
+        "revision": {"type": "integer", "minimum": 0},
+        "tenant_id": {"type": "string", "minLength": 1},
+        "thread_id": {"type": ["string", "null"]}
+      }
+    },
+    "execution": {
+      "type": "object",
+      "required": ["status", "current_node", "iteration", "versions"],
+      "properties": {
+        "status": {
+          "enum": ["NEW", "RUNNING", "WAITING_INPUT", "BLOCKED", "DRAFT_COMPLETE", "RELEASED", "FAILED"]
+        },
+        "current_node": {"type": "string"},
+        "iteration": {"type": "integer", "minimum": 0},
+        "versions": {
+          "type": "object",
+          "required": ["workflow", "domain_core", "prompt_pack"],
+          "properties": {
+            "workflow": {"type": "string"},
+            "domain_core": {"type": "string"},
+            "prompt_pack": {"type": "string"},
+            "model": {"type": ["string", "null"]},
+            "solver_bundle": {"type": ["string", "null"]}
+          }
+        },
+        "started_at": {"type": ["string", "null"], "format": "date-time"},
+        "updated_at": {"type": ["string", "null"], "format": "date-time"}
+      }
+    },
+    "authorization": {"type": "object"},
+    "raw_input": {"type": "object"},
+    "normalized_input": {"type": "object"},
+    "requirements": {"type": "array", "items": {"type": "object"}},
+    "applicability": {"type": "object"},
+    "knowledge_snapshot": {
+      "type": "object",
+      "required": ["snapshot_id", "authoritative_rules_available", "approved"],
+      "properties": {
+        "snapshot_id": {"type": ["string", "null"]},
+        "authoritative_rules_available": {"type": "boolean"},
+        "approved": {"type": "boolean"},
+        "document_versions": {"type": "array", "items": {"type": "string"}},
+        "rule_pack_version": {"type": ["string", "null"]},
+        "catalog_version": {"type": ["string", "null"]},
+        "created_at": {"type": ["string", "null"], "format": "date-time"}
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/$defs/evidence"}
+    },
+    "series_candidates": {"type": "array", "items": {"type": "object"}},
+    "functional_breakdown": {"type": "object"},
+    "performance_allocations": {"type": "array", "items": {"type": "object"}},
+    "module_instances": {"type": "object"},
+    "component_interfaces": {
+      "type": "object",
+      "propertyNames": {
+        "enum": ["blade", "hub", "double_oil_tube", "oil_distributor", "hydraulic_system", "electrical_control"]
+      },
+      "additionalProperties": {"$ref": "component_interface.schema.json"}
+    },
+    "calculations": {"type": "object"},
+    "compatibility": {"type": "object"},
+    "verification": {"type": "object"},
+    "decisions": {"type": "array", "items": {"type": "object"}},
+    "open_issues": {"type": "array", "items": {"$ref": "#/$defs/issue"}},
+    "approvals": {"type": "array", "items": {"type": "object"}},
+    "artifacts": {"type": "array", "items": {"type": "object"}},
+    "release": {"type": "object"},
+    "audit_refs": {"type": "array", "items": {"type": "string"}}
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "required": ["evidence_id", "kind", "source_id", "revision", "content_hash", "approval_status"],
+      "properties": {
+        "evidence_id": {"type": "string"},
+        "kind": {"enum": ["input", "clause", "table_cell", "formula", "calculation", "drawing", "approval"]},
+        "source_id": {"type": "string"},
+        "revision": {"type": "string"},
+        "section": {"type": ["string", "null"]},
+        "page": {"type": ["integer", "null"], "minimum": 1},
+        "locator": {"type": ["object", "null"]},
+        "content_hash": {"type": "string"},
+        "approval_status": {"enum": ["PENDING", "APPROVED", "REJECTED", "OBSOLETE"]},
+        "acl_tags": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "issue": {
+      "type": "object",
+      "required": ["issue_id", "code", "severity", "message", "status", "blocking"],
+      "properties": {
+        "issue_id": {"type": "string"},
+        "code": {"type": "string"},
+        "severity": {"enum": ["INFO", "WARNING", "ERROR", "CRITICAL"]},
+        "message": {"type": "string"},
+        "status": {"enum": ["OPEN", "RESOLVED", "ACCEPTED"]},
+        "blocking": {"type": "boolean"},
+        "owner_role": {"type": ["string", "null"]},
+        "evidence_ids": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}

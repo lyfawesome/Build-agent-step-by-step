@@ -1,0 +1,21 @@
+{
+  "artifact_type": "calculation_report",
+  "artifact_id": "ART-CALC-PITCH-TIME-001",
+  "project_id": "CPP-DATA-LAYER-DEMO-001",
+  "calculation_id": "CALC-PITCH-TIME-001",
+  "inputs": {
+    "start_pitch_deg": -6.0,
+    "target_pitch_deg": 18.0,
+    "pitch_speed_deg_per_second": 3.0
+  },
+  "method": {
+    "formula": "abs(target_pitch_deg - start_pitch_deg) / pitch_speed_deg_per_second",
+    "implementation": "calculate_pitch_change_time@0.1.0"
+  },
+  "result": {
+    "pitch_change_deg": 24.0,
+    "change_time_seconds": 8.0
+  },
+  "status": "DRAFT",
+  "notice": "教学计算制品，不是客户、船级社或企业批准的工程数据。"
+}
