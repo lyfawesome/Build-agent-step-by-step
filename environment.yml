@@ -1,0 +1,6 @@
+name: build-agent-step-by-step
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11.7
+  - pip

@@ -2,9 +2,11 @@
 
 这里只保留十一个脚本，每个脚本只讲一个问题。
 
+第一次学习请先读[从这里开始](00_start_here.md)，运行基线后完成[举一反三练习](exercises/README.md)。
+
 ## 配套学习笔记
 
-[两个对话的 Agent 学习手册：从这里开始](notes/README.md) 汇总当前对话与《代码实例学习》的知识，分为模型接口与工具调用、函数包装与 Schema、Pydantic、LangGraph 节点与路由、数据与证据、上下文管理、本地部署及阅读路线八个主题，并逐项关联下面的 demo。
+[两个对话的 Agent 学习手册：从这里开始](notes/README.md) 汇总当前对话与《代码实例学习》的知识，覆盖模型接口与工具调用、函数包装与 Schema、Pydantic、LangGraph 节点与路由、数据与证据、上下文管理、本地部署、阅读路线及可恢复工作流，并逐项关联下面的 demo。
 
 其中 [笔记 05：函数包装、文档字符串与 Schema 识别边界](notes/05_langchain_tool_and_schema.md) 保留了位置、引号、多段字符串、必填与可空、约束推断以及 `invoke` 同级方法的详细讨论。笔记与脚本分开放在 `notes/`，保持 demo 简短，便于持续积累学习记录。
 
@@ -86,6 +88,8 @@ python 06_langgraph_pure_tool_node.py
 
 本例没有 LLM。LangGraph 节点从 State 读取三个字段，调用 `Tool.invoke()`，再把结果写回 State。这说明一个节点可以只是确定性工具调用。
 
+练习会把同一个函数注册为两个不同节点，观察相同输入为什么得到相同结果、同一字段为什么被覆盖，以及插入 State 修改节点后结果如何变化。
+
 ## 7. LangGraph 如何编排 LLM 与 Tool
 
 运行：
@@ -95,6 +99,8 @@ python 07_langgraph_llm_tool_workflow.py
 ```
 
 本例才会调用 DeepSeek API，依次经过三个节点：LLM 从两个候选工具中选择一个、工具节点执行本地函数、第二个 LLM 节点根据工具结果生成最终回答。节点间的路由 `route_after_llm` 是普通 Python 代码，不依赖 LLM 的主观判断。
+
+基线使用明确的“桨直径”问题以便判断正确性；练习再使用 `R`、行业近义词和中英文表达，要求多次运行并统计选择稳定性。
 
 ## 8. Schema、Evidence 和 Artifact 如何协作
 
@@ -138,14 +144,15 @@ python 11_langgraph_interrupt_and_resume.py
 
 ## Python 环境
 
-在仓库根目录创建独立环境并安装依赖：
+推荐在仓库根目录创建独立 Conda 环境并安装已验证的锁定依赖：
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -r demos/requirements.txt
-cd demos
+conda env create -f environment.yml
+conda activate build-agent-step-by-step
+python -m pip install -r demos/requirements.lock.txt
 ```
+
+`requirements.txt` 表示兼容范围，`requirements.lock.txt` 固定教学验证版本。标准 Python 3.11 `.venv` 也可使用，但不要污染 Conda `base`。
 
 ## DeepSeek 配置从哪里读取
 
@@ -155,6 +162,8 @@ cd demos
 - `DEEPSEEK_BASE_URL`
 - `DEEPSEEK_MODEL`
 - `DEEPSEEK_THINKING`
+- `DEEPSEEK_TIMEOUT_SECONDS`
+- `DEEPSEEK_MAX_RETRIES`
 
 `demo_config.py` 从当前文件所在目录开始逐级向上查找，第一个找到的 `.env.local` 会被加载。已有进程环境变量不会被同名文件配置覆盖。因此，本机放在仓库父目录中的共享 `.env.local` 可以继续供这些教学脚本使用。
 

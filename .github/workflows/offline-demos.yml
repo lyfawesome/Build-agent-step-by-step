@@ -1,0 +1,22 @@
+name: Offline demos
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: demos/requirements.lock.txt
+      - name: Install verified dependencies
+        run: python -m pip install -r demos/requirements.lock.txt
+      - name: Verify imports do not execute demos
+        run: python -m unittest discover -s tests -v
+      - name: Run offline demos
+        run: ./run_offline_demos.sh
